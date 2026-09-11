@@ -6,12 +6,19 @@ type ProductosRepo interface {
 	Listar() []models.Producto
 }
 
-// ProductosMemoria tiene el catálogo fijo, igual que el monolito.
-type ProductosMemoria struct{}
+type ProductosMemoria struct {
+	productos []models.Producto
+}
 
-func (r ProductosMemoria) Listar() []models.Producto {
-	return []models.Producto{
-		{ID: "P-1", Nombre: "Auriculares", Stock: 10},
-		{ID: "P-2", Nombre: "Teclado", Stock: 8},
+func NuevoProductosMemoria() *ProductosMemoria {
+	return &ProductosMemoria{
+		productos: []models.Producto{
+			{ID: "P-1", Nombre: "Auriculares", Stock: 10},
+			{ID: "P-2", Nombre: "Teclado", Stock: 8},
+		},
 	}
+}
+
+func (r *ProductosMemoria) Listar() []models.Producto {
+	return r.productos
 }

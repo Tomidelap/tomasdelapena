@@ -1,41 +1,47 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
-	"pedidos/services"
-
 	"github.com/gin-gonic/gin"
+
+	"pedidos/services"
 )
 
 type PedidosController struct {
-	Service *services.PedidoService
+	service *services.PedidoService
+}
+
+func NuevoPedidosController(service *services.PedidoService) *PedidosController {
+	return &PedidosController{service: service}
+}
+
+func (ctrl *PedidosController) ListarProductos(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"productos": ctrl.service.ListarProductos()})
 }
 
 type confirmarPedidoRequest struct {
-	ClienteID  string `json:"cliente_id"`
-	ProductoID string `json:"producto_id"`
+	ClienteID  string `json:"cliente_id" binding:"required"`
+	ProductoID string `json:"producto_id" binding:"required"`
 }
 
-func (c *PedidosController) ListarProductos(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, gin.H{"productos": c.Service.ListarProductos()})
-}
-
-func (c *PedidosController) ConfirmarPedido(ctx *gin.Context) {
+func (ctrl *PedidosController) ConfirmarPedido(c *gin.Context) {
 	var req confirmarPedidoRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "body inválido"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	pedido, err := c.Service.ConfirmarPedido(req.ClienteID, req.ProductoID)
+	pedido, err := ctrl.service.ConfirmarPedido(req.ClienteID, req.ProductoID)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if errors.Is(err, services.ErrProductoNoEncontrado) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{
-		"mensaje":   "pedido confirmado",
-		"pedido_id": pedido.ID,
-	})
+	c.JSON(http.StatusCreated, pedido)
 }

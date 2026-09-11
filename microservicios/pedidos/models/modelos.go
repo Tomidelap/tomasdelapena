@@ -7,12 +7,11 @@ type Producto struct {
 }
 
 type Pedido struct {
-	ID         string `json:"pedido_id"`
+	ID         string `json:"id"`
 	ClienteID  string `json:"cliente_id"`
 	ProductoID string `json:"producto_id"`
 }
 
-// PedidoConfirmado es el evento que se publica en RabbitMQ.
 type PedidoConfirmado struct {
 	Tipo       string `json:"tipo"`
 	PedidoID   string `json:"pedido_id"`

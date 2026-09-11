@@ -1,23 +1,22 @@
 package services
 
 import (
-	"errors"
-
 	"clientes/models"
 	"clientes/repositories"
 )
 
 type ClientesService struct {
-	Repo repositories.ClientesRepo
+	repo repositories.ClientesRepo
 }
 
-func (s *ClientesService) CrearCliente(nombre string) (models.Cliente, error) {
-	if nombre == "" {
-		return models.Cliente{}, errors.New("el nombre es obligatorio")
-	}
-	return s.Repo.Crear(nombre), nil
+func NuevoClientesService(repo repositories.ClientesRepo) *ClientesService {
+	return &ClientesService{repo: repo}
 }
 
-func (s *ClientesService) ObtenerCliente(id string) (models.Cliente, error) {
-	return s.Repo.ObtenerPorID(id)
+func (s *ClientesService) Crear(nombre string) models.Cliente {
+	return s.repo.Guardar(models.Cliente{Nombre: nombre})
+}
+
+func (s *ClientesService) Buscar(id string) (models.Cliente, error) {
+	return s.repo.BuscarPorID(id)
 }

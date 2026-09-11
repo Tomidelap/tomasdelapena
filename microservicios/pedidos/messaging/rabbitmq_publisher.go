@@ -2,51 +2,60 @@ package messaging
 
 import (
 	"encoding/json"
+	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+
+	"pedidos/models"
 )
 
-const ColaPedidosConfirmados = "pedidos-confirmados"
+const colaPedidosConfirmados = "pedidos-confirmados"
 
-type RabbitMQPublisher struct {
-	conn *amqp.Connection
-	ch   *amqp.Channel
+type Publisher interface {
+	PublicarPedidoConfirmado(evento models.PedidoConfirmado) error
 }
 
-func NewRabbitMQPublisher(url string) (*RabbitMQPublisher, error) {
+type RabbitMQPublisher struct {
+	conn    *amqp.Connection
+	channel *amqp.Channel
+}
+
+func NuevoRabbitMQPublisher(url string) (*RabbitMQPublisher, error) {
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		return nil, err
 	}
 
-	ch, err := conn.Channel()
+	channel, err := conn.Channel()
 	if err != nil {
 		conn.Close()
 		return nil, err
 	}
 
-	// Crea la cola si todavía no existe (durable).
-	if _, err := ch.QueueDeclare(ColaPedidosConfirmados, true, false, false, false, nil); err != nil {
-		ch.Close()
+	_, err = channel.QueueDeclare(colaPedidosConfirmados, true, false, false, false, nil)
+	if err != nil {
+		channel.Close()
 		conn.Close()
 		return nil, err
 	}
 
-	return &RabbitMQPublisher{conn: conn, ch: ch}, nil
+	return &RabbitMQPublisher{conn: conn, channel: channel}, nil
 }
 
-func (p *RabbitMQPublisher) Publicar(evento any) error {
-	body, err := json.Marshal(evento)
+func (p *RabbitMQPublisher) PublicarPedidoConfirmado(evento models.PedidoConfirmado) error {
+	cuerpo, err := json.Marshal(evento)
 	if err != nil {
 		return err
 	}
-	return p.ch.Publish("", ColaPedidosConfirmados, false, false, amqp.Publishing{
-		ContentType: "application/json",
-		Body:        body,
-	})
-}
 
-func (p *RabbitMQPublisher) Close() {
-	p.ch.Close()
-	p.conn.Close()
+	err = p.channel.Publish("", colaPedidosConfirmados, false, false, amqp.Publishing{
+		ContentType: "application/json",
+		Body:        cuerpo,
+	})
+	if err != nil {
+		return err
+	}
+
+	log.Printf("evento publicado en %s: %s", colaPedidosConfirmados, cuerpo)
+	return nil
 }

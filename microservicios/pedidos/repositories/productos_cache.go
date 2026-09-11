@@ -8,28 +8,30 @@ import (
 	"pedidos/models"
 )
 
-// ProductosCache envuelve a otro ProductosRepo: si el listado está en caché
-// y no venció, lo devuelve; si no, lo pide al siguiente repositorio.
-type ProductosCache struct {
-	NextRepo ProductosRepo
-	TTL      time.Duration
+const ttlProductosCache = time.Minute
 
-	mu        sync.Mutex
-	productos []models.Producto
-	vence     time.Time
+type ProductosCache struct {
+	siguiente   ProductosRepo
+	mu          sync.Mutex
+	datos       []models.Producto
+	vencimiento time.Time
 }
 
-func (r *ProductosCache) Listar() []models.Producto {
-	r.mu.Lock()
-	defer r.mu.Unlock()
+func NuevoProductosCache(siguiente ProductosRepo) *ProductosCache {
+	return &ProductosCache{siguiente: siguiente}
+}
 
-	if r.productos != nil && time.Now().Before(r.vence) {
+func (c *ProductosCache) Listar() []models.Producto {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.datos != nil && time.Now().Before(c.vencimiento) {
 		log.Println("CACHE HIT: productos")
-		return r.productos
+		return c.datos
 	}
 
 	log.Println("CACHE MISS: productos")
-	r.productos = r.NextRepo.Listar()
-	r.vence = time.Now().Add(r.TTL)
-	return r.productos
+	c.datos = c.siguiente.Listar()
+	c.vencimiento = time.Now().Add(ttlProductosCache)
+	return c.datos
 }

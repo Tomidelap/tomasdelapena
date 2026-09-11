@@ -1,5 +1,7 @@
 # Trabajo práctico integrador: e-commerce y logística
 
+**Alumno:** Tomás de la Peña
+
 ## Idea
 
 El punto de partida es un monolito simple de e-commerce. Clientes, productos y pedidos viven dentro de la misma aplicación, en el puerto `8080`.

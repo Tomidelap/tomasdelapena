@@ -8,29 +8,25 @@ import (
 )
 
 type PedidosRepo interface {
-	Guardar(clienteID, productoID string) models.Pedido
+	Guardar(pedido models.Pedido) models.Pedido
 }
 
 type PedidosMemoria struct {
 	mu       sync.Mutex
 	pedidos  map[string]models.Pedido
-	ultimoID int
+	contador int
 }
 
-func NewPedidosMemoria() *PedidosMemoria {
-	return &PedidosMemoria{pedidos: map[string]models.Pedido{}}
+func NuevoPedidosMemoria() *PedidosMemoria {
+	return &PedidosMemoria{pedidos: make(map[string]models.Pedido)}
 }
 
-func (r *PedidosMemoria) Guardar(clienteID, productoID string) models.Pedido {
+func (r *PedidosMemoria) Guardar(pedido models.Pedido) models.Pedido {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.ultimoID++
-	pedido := models.Pedido{
-		ID:         fmt.Sprintf("PED-%d", r.ultimoID),
-		ClienteID:  clienteID,
-		ProductoID: productoID,
-	}
+	r.contador++
+	pedido.ID = fmt.Sprintf("PED-%d", r.contador)
 	r.pedidos[pedido.ID] = pedido
 	return pedido
 }

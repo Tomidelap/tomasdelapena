@@ -3,39 +3,47 @@ package controllers
 import (
 	"net/http"
 
-	"clientes/services"
-
 	"github.com/gin-gonic/gin"
+
+	"clientes/repositories"
+	"clientes/services"
 )
 
 type ClientesController struct {
-	Service *services.ClientesService
+	service *services.ClientesService
+}
+
+func NuevoClientesController(service *services.ClientesService) *ClientesController {
+	return &ClientesController{service: service}
 }
 
 type crearClienteRequest struct {
-	Nombre string `json:"nombre"`
+	Nombre string `json:"nombre" binding:"required"`
 }
 
-func (c *ClientesController) Crear(ctx *gin.Context) {
+func (ctrl *ClientesController) Crear(c *gin.Context) {
 	var req crearClienteRequest
-	if err := ctx.ShouldBindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "body inválido"})
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	cliente, err := c.Service.CrearCliente(req.Nombre)
-	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	ctx.JSON(http.StatusCreated, cliente)
+	cliente := ctrl.service.Crear(req.Nombre)
+	c.JSON(http.StatusCreated, cliente)
 }
 
-func (c *ClientesController) ObtenerPorID(ctx *gin.Context) {
-	cliente, err := c.Service.ObtenerCliente(ctx.Param("id"))
+func (ctrl *ClientesController) Obtener(c *gin.Context) {
+	id := c.Param("id")
+
+	cliente, err := ctrl.service.Buscar(id)
 	if err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		if err == repositories.ErrClienteNoEncontrado {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	ctx.JSON(http.StatusOK, cliente)
+
+	c.JSON(http.StatusOK, cliente)
 }

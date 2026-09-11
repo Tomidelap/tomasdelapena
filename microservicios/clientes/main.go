@@ -3,24 +3,23 @@ package main
 import (
 	"log"
 
+	"github.com/gin-gonic/gin"
+
 	"clientes/controllers"
 	"clientes/repositories"
 	"clientes/services"
-
-	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Cableado: repositorio -> servicio -> controlador
-	repo := repositories.NewClientesMemoria()
-	service := &services.ClientesService{Repo: repo}
-	controller := &controllers.ClientesController{Service: service}
+	repo := repositories.NuevoClientesMemoria()
+	service := services.NuevoClientesService(repo)
+	controller := controllers.NuevoClientesController(service)
 
 	router := gin.Default()
 	router.POST("/clientes", controller.Crear)
-	router.GET("/clientes/:id", controller.ObtenerPorID)
+	router.GET("/clientes/:id", controller.Obtener)
 
-	log.Println("Microservicio clientes escuchando en http://localhost:8081")
+	log.Println("Microservicio de clientes escuchando en http://localhost:8081")
 	if err := router.Run(":8081"); err != nil {
 		log.Fatal(err)
 	}

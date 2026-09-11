@@ -1,6 +1,6 @@
 # TP 1-4: de monolito a microservicios
 
-**Alumna:** Sofía Peiretti
+**Alumno:** Tomás de la Peña
 
 Separación del monolito de e-commerce en dos microservicios independientes, con caché para productos y publicación del evento `pedido.confirmado` en RabbitMQ.
 
@@ -17,19 +17,18 @@ pedidos -- pedido.confirmado --> RabbitMQ (cola pedidos-confirmados) --> logíst
 microservicios/
 ├── compose.yaml                 # RabbitMQ
 ├── clientes/
-│   ├── controllers/             # HTTP (gin)
-│   ├── services/                # validaciones y lógica
-│   ├── repositories/            # datos en memoria
-│   ├── models/
-│   └── main.go                  # cableado y servidor :8081
-├── pedidos/
 │   ├── controllers/
-│   ├── services/                # confirma el pedido y publica el evento
-│   ├── repositories/            # productos, caché de productos y pedidos en memoria
-│   ├── messaging/               # publisher de RabbitMQ
+│   ├── services/
+│   ├── repositories/
 │   ├── models/
-│   └── main.go                  # cableado y servidor :8082
-└── evidencia/                   # capturas de la prueba
+│   └── main.go                  # servidor :8081
+└── pedidos/
+    ├── controllers/
+    ├── services/                # confirma el pedido y publica el evento
+    ├── repositories/            # productos, caché de productos y pedidos
+    ├── messaging/                # publisher de RabbitMQ
+    ├── models/
+    └── main.go                  # servidor :8082
 ```
 
 ## Microservicio `clientes` (puerto 8081)
@@ -46,9 +45,9 @@ microservicios/
 | `GET` | `/productos` | Lista los productos. Usa caché en memoria. |
 | `POST` | `/pedidos` | Confirma un pedido. Body: `{"cliente_id": "C-1", "producto_id": "P-1"}`. |
 
-**Caché:** `ProductosCache` envuelve al repositorio de productos. Si el listado está guardado y no venció (TTL de 1 minuto), lo devuelve directamente (`CACHE HIT`). Si no, lo pide al repositorio y lo guarda (`CACHE MISS`).
+**Caché:** `ProductosCache` envuelve al repositorio de productos. Si hay datos guardados y no pasó un minuto, los devuelve directo (log `CACHE HIT`). Si no, los pide al repositorio real, los guarda y reinicia el TTL (log `CACHE MISS`).
 
-**Evento:** cuando el servicio confirma un pedido, publica en la cola `pedidos-confirmados`:
+**Evento:** al confirmar un pedido se publica en la cola `pedidos-confirmados`:
 
 ```json
 {
@@ -59,59 +58,39 @@ microservicios/
 }
 ```
 
-La conexión, la declaración de la cola y la publicación están en `pedidos/messaging/rabbitmq_publisher.go`. Logística no se implementa, solo es el destinatario conceptual del evento.
+Todo lo de RabbitMQ (conexión, cola, publicación) está en `pedidos/messaging/rabbitmq_publisher.go`. Logística no se implementa, es solo el destinatario conceptual del evento.
 
 ## Ejecución
 
 1. Levantar RabbitMQ (desde esta carpeta):
 
 ```bash
-   docker compose up -d
+docker compose up -d
 ```
 
 2. Levantar cada microservicio en una terminal distinta:
 
 ```bash
-   cd clientes
-   go mod tidy
-   go run .
+cd clientes
+go mod tidy
+go run .
 ```
 
 ```bash
-   cd pedidos
-   go mod tidy
-   go run .
+cd pedidos
+go mod tidy
+go run .
 ```
 
 3. Probar (PowerShell):
 
 ```powershell
-   Invoke-RestMethod -Method Post -Uri http://localhost:8081/clientes -ContentType "application/json" -Body '{"nombre":"Ana Pérez"}'
-   Invoke-RestMethod http://localhost:8081/clientes/C-1
-   Invoke-RestMethod http://localhost:8082/productos
-   Invoke-RestMethod -Method Post -Uri http://localhost:8082/pedidos -ContentType "application/json" -Body '{"cliente_id":"C-1","producto_id":"P-1"}'
+Invoke-RestMethod -Method Post -Uri http://localhost:8081/clientes -ContentType "application/json" -Body '{"nombre":"Ana Pérez"}'
+Invoke-RestMethod http://localhost:8081/clientes/C-1
+Invoke-RestMethod http://localhost:8082/productos
+Invoke-RestMethod -Method Post -Uri http://localhost:8082/pedidos -ContentType "application/json" -Body '{"cliente_id":"C-1","producto_id":"P-1"}'
 ```
 
-4. Verificar el evento en el panel de RabbitMQ: http://localhost:15672 (usuario `user`, contraseña `pass`), cola `pedidos-confirmados`.
+4. Verificar el evento en el panel de RabbitMQ: http://localhost:15672 (usuario `guest`, contraseña `guest`), cola `pedidos-confirmados`.
 
-## Evidencia
-
-**Microservicio `clientes`:** alta (`201`) y consulta (`200`) de un cliente.
-
-_(agregar captura propia)_
-
-**Microservicio `pedidos`:** el primer `GET /productos` es `CACHE MISS` y el segundo `CACHE HIT`. Después, el pedido se confirma (`201`).
-
-_(agregar captura propia)_
-
-**RabbitMQ:** la cola `pedidos-confirmados` recibió el mensaje (Ready = 1).
-
-_(agregar captura propia)_
-
-**Contenido del evento publicado:**
-
-_(agregar captura propia)_
-
-## Decisión de por que se elimino carpeta eventos
-
-El evento `pedido.confirmado` se definió dentro de `pedidos/models`, ya que por ahora es el único servicio que lo usa 
+Más detalle de las decisiones de diseño en [`ARQUITECTURA.md`](../ARQUITECTURA.md).

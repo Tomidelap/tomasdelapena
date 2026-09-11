@@ -8,39 +8,40 @@ import (
 	"clientes/models"
 )
 
+var ErrClienteNoEncontrado = errors.New("cliente no encontrado")
+
 type ClientesRepo interface {
-	Crear(nombre string) models.Cliente
-	ObtenerPorID(id string) (models.Cliente, error)
+	Guardar(cliente models.Cliente) models.Cliente
+	BuscarPorID(id string) (models.Cliente, error)
 }
 
-// ClientesMemoria guarda los clientes en un map (sin base de datos).
 type ClientesMemoria struct {
 	mu       sync.Mutex
 	clientes map[string]models.Cliente
-	ultimoID int
+	contador int
 }
 
-func NewClientesMemoria() *ClientesMemoria {
-	return &ClientesMemoria{clientes: map[string]models.Cliente{}}
+func NuevoClientesMemoria() *ClientesMemoria {
+	return &ClientesMemoria{clientes: make(map[string]models.Cliente)}
 }
 
-func (r *ClientesMemoria) Crear(nombre string) models.Cliente {
+func (r *ClientesMemoria) Guardar(cliente models.Cliente) models.Cliente {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.ultimoID++
-	cliente := models.Cliente{ID: fmt.Sprintf("C-%d", r.ultimoID), Nombre: nombre}
+	r.contador++
+	cliente.ID = fmt.Sprintf("C-%d", r.contador)
 	r.clientes[cliente.ID] = cliente
 	return cliente
 }
 
-func (r *ClientesMemoria) ObtenerPorID(id string) (models.Cliente, error) {
+func (r *ClientesMemoria) BuscarPorID(id string) (models.Cliente, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	cliente, ok := r.clientes[id]
 	if !ok {
-		return models.Cliente{}, errors.New("cliente no encontrado")
+		return models.Cliente{}, ErrClienteNoEncontrado
 	}
 	return cliente, nil
 }
