@@ -1,6 +1,6 @@
 # Arquitectura: TP 1-4
 
-**Alumna:** Sofía Peiretti
+**Alumno:** Tomás de la Peña
 
 ## 1. Punto de partida
 

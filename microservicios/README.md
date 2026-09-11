@@ -98,19 +98,19 @@ La conexión, la declaración de la cola y la publicación están en `pedidos/me
 
 **Microservicio `clientes`:** alta (`201`) y consulta (`200`) de un cliente.
 
-![clientes](evidencia/01-clientes.png)
+_(agregar captura propia)_
 
 **Microservicio `pedidos`:** el primer `GET /productos` es `CACHE MISS` y el segundo `CACHE HIT`. Después, el pedido se confirma (`201`).
 
-![pedidos](evidencia/02-pedidos-cache.png)
+_(agregar captura propia)_
 
 **RabbitMQ:** la cola `pedidos-confirmados` recibió el mensaje (Ready = 1).
 
-![cola](evidencia/03-cola-rabbitmq.png)
+_(agregar captura propia)_
 
 **Contenido del evento publicado:**
 
-![evento](evidencia/04-evento-payload.png)
+_(agregar captura propia)_
 
 ## Decisión de por que se elimino carpeta eventos
 
